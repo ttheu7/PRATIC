@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Elo × APAE — Protótipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #1B4FD8;
+    --blue-light: #EFF6FF;
+    --blue-mid: #BFDBFE;
+    --blue-dark: #1E3A8A;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --green-mid: #BBF7D0;
+    --amber: #F59E0B;
+    --amber-light: #FEF9C3;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface2: #F1F5F9;
+    --border: rgba(0,0,0,0.08);
+    --border-md: rgba(0,0,0,0.14);
+    --text: #0F172A;
+    --text2: #475569;
+    --text3: #94A3B8;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+
+  /* ── NAV ── */
+  .topbar { background: var(--surface); border-bottom: 0.5px solid var(--border-md); height: 56px; display: flex; align-items: center; padding: 0 1.5rem; gap: 1rem; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; margin-right: 1rem; }
+  .logo-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo-icon svg { width: 17px; height: 17px; }
+  .nav-tabs { display: flex; gap: 2px; flex: 1; }
+  .nav-tab { padding: 6px 14px; border-radius: var(--radius); font-size: 13px; color: var(--text2); cursor: pointer; border: none; background: none; font-family: inherit; transition: background 0.15s; }
+  .nav-tab:hover { background: var(--surface2); }
+  .nav-tab.active { background: var(--blue-light); color: var(--blue-dark); font-weight: 500; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .av-blue { background: var(--blue); color: white; }
+  .av-green { background: var(--green); color: white; }
+  .topbar-user { font-size: 13px; color: var(--text2); }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+  .main { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
+
+  /* ── SECTION LABEL ── */
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 12px; }
+
+  /* ── METRICS ── */
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: var(--surface2); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.blue { color: var(--blue); }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface); border: 0.5px solid var(--border-md); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 12px; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 99px; }
+  .badge-active   { background: var(--green-light); color: #166534; }
+  .badge-pending  { background: var(--amber-light); color: #92400E; }
+  .badge-closed   { background: var(--surface2); color: var(--text3); }
+  .badge-verified { background: var(--blue-light); color: var(--blue-dark); }
+  .badge-danger   { background: var(--red-light); color: #991B1B; }
+
+  /* ── PROGRESS BAR ── */
+  .prog-bg { height: 7px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.9s ease; }
+  .prog-blue  { background: var(--blue); }
+  .prog-green { background: var(--green); }
+  .prog-amber { background: var(--amber); }
+  .prog-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-top: 5px; }
+  .prog-labels strong { color: var(--text); }
+
+  /* ── BUTTONS ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border-md); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .btn-primary:hover { background: #1640b8; }
+  .btn-success { background: var(--green); color: white; border-color: var(--green); }
+  .btn-success:hover { background: #15803d; }
+  .btn-danger  { background: var(--red-light); color: #991B1B; border-color: #FCA5A5; }
+  .btn-danger:hover { background: #FEE2E2; }
+  .btn-full { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
+  .btn-dashed { width: 100%; justify-content: center; padding: 14px; border: 1.5px dashed var(--border-md); background: none; color: var(--text2); border-radius: var(--radius-lg); margin-bottom: 1.5rem; font-size: 13px; }
+  .btn-dashed:hover { background: var(--surface2); border-color: var(--blue); color: var(--blue); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 0.5px solid var(--border-md); white-space: nowrap; }
+  tbody td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg); }
+
+  /* ── DONOR STACK ── */
+  .donor-stack { display: flex; }
+  .ds-av { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); font-size: 8px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-left: -6px; color: white; }
+  .ds-av:first-child { margin-left: 0; }
+
+  /* ── SPLIT BANNER ── */
+  .split-banner { background: var(--green-light); border: 0.5px solid var(--green-mid); border-radius: var(--radius); padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #166534; margin-top: 10px; }
+  .trust-strip { background: var(--surface); border: 0.5px solid var(--border-md); border-radius: var(--radius-lg); padding: 14px 1.5rem; display: flex; align-items: center; justify-content: space-around; gap: 12px; flex-wrap: wrap; }
+  .trust-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+  .trust-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .ti-blue  { background: var(--blue-light); color: var(--blue); }
+  .ti-green { background: var(--green-light); color: var(--green); }
+  .ti-amber { background: var(--amber-light); color: #92400E; }
+
+  /* ── CHECKOUT ── */
+  .checkout-wrap { display: flex; justify-content: center; padding: 2rem 1rem; }
+  .checkout-card { background: var(--surface); border: 0.5px solid var(--border-md); border-radius: var(--radius-lg); width: 100%; max-width: 460px; overflow: hidden; }
+  .checkout-hero { background: var(--blue); padding: 1.25rem 1.5rem; color: white; }
+  .checkout-org { font-size: 11px; opacity: 0.75; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .checkout-camp-name { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+  .prog-mini-bg { background: rgba(255,255,255,0.3); height: 6px; border-radius: 99px; overflow: hidden; }
+  .prog-mini-fill { height: 100%; background: white; border-radius: 99px; }
+  .checkout-prog-text { font-size: 12px; opacity: 0.85; margin-top: 5px; }
+  .checkout-body { padding: 1.25rem 1.5rem; }
+  .trust-badges { display: flex; gap: 7px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .tb { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 99px; border: 0.5px solid; }
+  .tb-verified { background: var(--blue-light); color: var(--blue-dark); border-color: var(--blue-mid); }
+  .tb-apae { background: var(--green-light); color: #166534; border-color: var(--green-mid); }
+  .tb-secure { background: #F5F3FF; color: #5B21B6; border-color: #DDD6FE; }
+  .field-label { font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  .field-group { margin-bottom: 1rem; }
+  .amount-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 8px; }
+  .amount-btn { padding: 9px; border: 0.5px solid var(--border-md); border-radius: var(--radius); background: var(--surface2); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text); font-family: inherit; transition: all 0.15s; }
+  .amount-btn:hover, .amount-btn.sel { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+  .field-input { width: 100%; padding: 8px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius); font-size: 13px; background: var(--surface2); color: var(--text); font-family: inherit; margin-bottom: 8px; outline: none; }
+  .field-input:focus { border-color: var(--blue); background: var(--surface); }
+  .pay-tabs { display: flex; border: 0.5px solid var(--border-md); border-radius: var(--radius); overflow: hidden; margin-bottom: 1rem; }
+  .pay-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; cursor: pointer; color: var(--text2); border: none; background: none; font-family: inherit; }
+  .pay-tab.active { background: var(--blue); color: white; font-weight: 500; }
+  .pix-box { background: var(--surface2); border: 0.5px dashed var(--border-md); border-radius: var(--radius); padding: 1rem; text-align: center; margin-bottom: 1rem; }
+  .pix-qr { width: 80px; height: 80px; background: white; border: 0.5px solid var(--border-md); border-radius: 6px; margin: 0 auto 8px; display: grid; grid-template-columns: repeat(7,1fr); gap: 1.5px; padding: 6px; }
+  .pix-cell { border-radius: 1px; }
+  .pix-label { font-size: 12px; color: var(--text2); }
+  .pix-key { font-size: 13px; font-weight: 600; color: var(--text); margin: 3px 0; }
+  .split-callout { background: #F0FDF4; border: 0.5px solid var(--green-mid); border-radius: var(--radius); padding: 10px 12px; display: flex; gap: 8px; font-size: 12px; color: #166534; margin-bottom: 1.25rem; align-items: flex-start; }
+  .checkout-footer { padding: 10px 1.5rem 1.25rem; text-align: center; font-size: 11px; color: var(--text3); display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+  /* ── ADMIN PANEL ── */
+  .admin-layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 56px); }
+  .admin-sidebar { background: var(--surface); border-right: 0.5px solid var(--border-md); padding: 1rem 0; }
+  .sidebar-section { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1rem 6px; margin-top: 12px; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 1rem; font-size: 13px; color: var(--text2); cursor: pointer; transition: background 0.15s; border-left: 3px solid transparent; }
+  .sidebar-item:hover { background: var(--surface2); }
+  .sidebar-item.active { background: var(--blue-light); color: var(--blue); border-left-color: var(--blue); font-weight: 500; }
+  .sidebar-item .count { margin-left: auto; background: var(--amber-light); color: #92400E; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; }
+  .sidebar-item .count-blue { background: var(--blue-light); color: var(--blue); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; margin-left: auto; }
+  .admin-content { padding: 1.5rem; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .admin-title { font-size: 18px; font-weight: 600; }
+  .admin-subtitle { font-size: 13px; color: var(--text3); margin-top: 2px; }
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .filter-input { padding: 7px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); font-family: inherit; outline: none; }
+  .filter-input:focus { border-color: var(--blue); }
+  select.filter-input { cursor: pointer; }
+  .approval-card { background: var(--surface); border: 0.5px solid var(--border-md); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 1rem; }
+  .appr-avatar { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+  .appr-info { flex: 1; }
+  .appr-name { font-size: 14px; font-weight: 500; }
+  .appr-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .appr-desc { font-size: 12px; color: var(--text2); margin-top: 6px; background: var(--surface2); border-radius: var(--radius); padding: 8px 10px; }
+  .appr-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .chart-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .chart-row { display: flex; align-items: center; gap: 10px; }
+  .chart-label { font-size: 12px; color: var(--text2); width: 180px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chart-bar-bg { flex: 1; height: 22px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .chart-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; color: white; transition: width 1s ease; }
+  .chart-val { font-size: 12px; font-weight: 600; color: var(--text); width: 70px; text-align: right; }
+  .two-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+  .audit-log { font-size: 12px; }
+  .audit-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .audit-dot-green { background: var(--green); }
+  .audit-dot-blue  { background: var(--blue); }
+  .audit-dot-amber { background: var(--amber); }
+  .audit-time { color: var(--text3); width: 48px; flex-shrink: 0; }
+  .audit-msg { color: var(--text2); }
+  .audit-msg strong { color: var(--text); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); width: 480px; max-width: 95vw; padding: 1.5rem; position: relative; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+  .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text3); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--text); color: white; padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 300; transform: translateY(80px); opacity: 0; transition: all 0.3s ease; pointer-events: none; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-green { background: var(--green); }
+  .toast-red { background: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg></i> <span id="toast-msg">Ação realizada</span></div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a class="logo" href="#" onclick="showView('organizador')">
+    <div class="logo-icon">
+      <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 9C4 6.8 5.8 5 8 5H10C12.2 5 14 6.8 14 9C14 11.2 12.2 13 10 13H8" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M8 9C8 11.2 6.2 13 4 13" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    Elo
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-organizador" onclick="showView('organizador')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v8h-6z"/><path d="M4 16h6v4h-6z"/><path d="M14 12h6v8h-6z"/><path d="M14 4h6v4h-6z"/></svg></i> Dashboard
+    </button>
+    <button class="nav-tab" id="tab-checkout" onclick="showView('checkout')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.566"/></svg></i> Jornada de Doação
+    </button>
+    <button class="nav-tab" id="tab-admin" onclick="showView('admin')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/></svg></i> Painel APAE
+    </button>
+  </div>
+  <div class="topbar-right">
+    <div class="avatar av-blue">ML</div>
+    <span class="topbar-user">Maria Lima</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW 1 — DASHBOARD DO ORGANIZADOR
+════════════════════════════════════════════════ -->
+<div class="view active" id="view-organizador">
+  <div class="main">
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Total arrecadado</div>
+        <div class="metric-value green">R$ 4.820</div>
+        <div class="metric-sub">em todas as campanhas</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Campanhas ativas</div>
+        <div class="metric-value blue">2</div>
+        <div class="metric-sub">de 3 criadas</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Doadores únicos</div>
+        <div class="metric-value">47</div>
+        <div class="metric-sub">+8 este mês</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Repasse APAE</div>
+        <div class="metric-value green">100%</div>
+        <div class="metric-sub">via split automático</div>
+      </div>
+    </div>
+
+    <div class="section-label">Campanhas ativas</div>
+
+    <!-- Campanha 1 -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+        <div>
+          <div style="font-size:15px; font-weight:600;">🎂 Aniversário de 30 anos — Maria Lima</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+            <span style="font-size:12px; color:var(--text2);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/></svg></i> Encerra em 12 dias</span>
+            <span class="badge badge-active"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 12l2 2l4 -4"/></svg></i> Ativa</span>
+            <span class="badge badge-verified"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/></svg></i> Verificada pela APAE</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn" onclick="copyLink()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M8.7 10.7l6.6 -3.4"/><path d="M8.7 13.3l6.6 3.4"/></svg></i> Compartilhar</button>
+          <button class="btn btn-primary" onclick="showView('checkout')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 7h-5a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-5"/><path d="M10 14l10 -10"/><path d="M15 4l5 0l0 5"/></svg></i> Ver página</button>
+        </div>
+      </div>
+      <div class="prog-bg"><div class="prog-fill prog-blue" style="width:0%" id="org-bar1"></div></div>
+      <div class="prog-labels">
+        <span>R$ 3.200 arrecadados</span>
+        <span><strong>64%</strong> da meta de R$ 5.000</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+        <div class="donor-stack">
+          <div class="ds-av" style="background:#1B4FD8;">JF</div>
+          <div class="ds-av" style="background:#16A34A;">AS</div>
+          <div class="ds-av" style="background:#F59E0B; color:#fff;">RB</div>
+          <div class="ds-av" style="background:#EF4444;">+</div>
+        </div>
+        <span style="font-size:12px; color:var(--text2);">32 pessoas doaram</span>
+      </div>
+      <div class="split-banner">
+        <svg style="flex-shrink:0; margin-top:1px;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></i>
+        <span>Cada doação é transferida diretamente para a <strong>conta oficial da APAE (CNPJ 00.000.000/0001-00)</strong> via split de pagamento — nenhum valor passa pela sua conta.</span>
+      </div>
+    </div>
+
+    <!-- Campanha 2 -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+        <div>
+          <div style="font-size:15px; font-weight:600;">🏃 Corrida pelos Sorrisos — 5km Videira</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+            <span style="font-size:12px; color:var(--text2);"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/></svg></i> Encerra em 28 dias</span>
+            <span class="badge badge-active"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 12l2 2l4 -4"/></svg></i> Ativa</span>
+            <span class="badge badge-verified"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/></svg></i> Verificada pela APAE</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn" onclick="copyLink()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M8.7 10.7l6.6 -3.4"/><path d="M8.7 13.3l6.6 3.4"/></svg></i> Compartilhar</button>
+          <button class="btn btn-primary" onclick="showView('checkout')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 7h-5a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-5"/><path d="M10 14l10 -10"/><path d="M15 4l5 0l0 5"/></svg></i> Ver página</button>
+        </div>
+      </div>
+      <div class="prog-bg"><div class="prog-fill prog-green" style="width:0%" id="org-bar2"></div></div>
+      <div class="prog-labels">
+        <span>R$ 1.620 arrecadados</span>
+        <span><strong>27%</strong> da meta de R$ 6.000</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+        <div class="donor-stack">
+          <div class="ds-av" style="background:#1B4FD8;">CP</div>
+          <div class="ds-av" style="background:#16A34A;">MG</div>
+        </div>
+        <span style="font-size:12px; color:var(--text2);">15 pessoas doaram</span>
+      </div>
+    </div>
+
+    <button class="btn-dashed" onclick="openModal()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg></i> Criar nova campanha
+    </button>
+
+    <div class="trust-strip">
+      <div class="trust-item">
+        <div class="trust-icon ti-blue"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/></svg></i></div>
+        <span>Pagamentos PCI-DSS</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon ti-green"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l18 0"/><path d="M3 10l18 0"/><path d="M5 6l7 -3l7 3"/><path d="M4 10l0 11"/><path d="M20 10l0 11"/><path d="M8 14l0 3"/><path d="M12 14l0 3"/><path d="M16 14l0 3"/></svg></i></div>
+        <span>100% do valor para a APAE</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon ti-amber"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/><path d="M14 8h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5"/><path d="M12 8v1m0 6v1"/></svg></i></div>
+        <span>Comprovante em cada doação</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW 2 — JORNADA DE DOAÇÃO (CHECKOUT)
+════════════════════════════════════════════════ -->
+<div class="view" id="view-checkout">
+  <div class="checkout-wrap">
+    <div class="checkout-card">
+      <div class="checkout-hero">
+        <div class="checkout-org"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/></svg></i> APAE · Campanha verificada</div>
+        <div class="checkout-camp-name">🎂 Aniversário de 30 anos — Maria Lima</div>
+        <div class="prog-mini-bg"><div class="prog-mini-fill" style="width:64%"></div></div>
+        <div class="checkout-prog-text">R$ 3.200 arrecadados · <strong>64%</strong> da meta de R$ 5.000</div>
+      </div>
+
+      <div class="checkout-body">
+        <div class="trust-badges">
+          <span class="tb tb-verified"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M9 12l2 2l4 -4"/></svg></i> Verificado</span>
+          <span class="tb tb-apae"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l5 5v7h-5v-4h-2v4h-5v-7l5 -5"/><path d="M6 4l6 6l6 -6"/><path d="M11 14l5 5v2h5v-7l-5 -5"/></svg></i> Destino 100% APAE</span>
+          <span class="tb tb-secure"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></i> PCI-DSS</span>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Escolha o valor</div>
+          <div class="amount-grid">
+            <button class="amount-btn" onclick="selectAmt(this,'20')">R$ 20</button>
+            <button class="amount-btn sel" onclick="selectAmt(this,'50')">R$ 50</button>
+            <button class="amount-btn" onclick="selectAmt(this,'100')">R$ 100</button>
+            <button class="amount-btn" onclick="selectAmt(this,'200')">R$ 200</button>
+            <button class="amount-btn" onclick="selectAmt(this,'500')">R$ 500</button>
+            <button class="amount-btn" onclick="selectAmt(this,'')">Outro</button>
+          </div>
+          <input class="field-input" id="amtCustom" type="number" placeholder="Ou digite outro valor (R$)" />
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Forma de pagamento</div>
+          <div class="pay-tabs">
+            <button class="pay-tab active" onclick="selectPayTab(this,'pix')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></i> Pix</button>
+            <button class="pay-tab" onclick="selectPayTab(this,'card')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"/><path d="M3 10l18 0"/><path d="M7 15l.01 0"/><path d="M11 15l2 0"/></svg></i> Cartão</button>
+          </div>
+        </div>
+
+        <div id="pix-section">
+          <div class="pix-box">
+            <div class="pix-qr" id="qr"></div>
+            <div class="pix-label">Chave Pix oficial da APAE</div>
+            <div class="pix-key">apae.videira@apae.org.br</div>
+            <div class="pix-label">CNPJ 00.000.000/0001-00</div>
+          </div>
+        </div>
+
+        <div id="card-section" style="display:none">
+          <input class="field-input" placeholder="Número do cartão" />
+          <div style="display:flex; gap:8px;">
+            <input class="field-input" placeholder="Validade MM/AA" style="flex:1" />
+            <input class="field-input" placeholder="CVV" style="flex:1" />
+          </div>
+          <input class="field-input" placeholder="Nome no cartão" />
+        </div>
+
+        <div class="split-callout">
+          <svg style="font-size:16px; flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4l-4 4"/><path d="M21 7h-11"/><path d="M7 21l-4 -4l4 -4"/><path d="M3 17h11"/></svg></i>
+          <span>Sua doação será transferida <strong>diretamente para a conta oficial da APAE</strong> via split de pagamento — sem intermediários, com rastreabilidade total.</span>
+        </div>
+
+        <input class="field-input" placeholder="Seu nome (opcional)" />
+        <input class="field-input" placeholder="Mensagem para a organizadora (opcional)" style="margin-bottom:1rem;" />
+
+        <button class="btn btn-primary btn-full" id="donate-btn" onclick="confirmDonate()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.566"/></svg></i> Confirmar doação de R$ 50
+        </button>
+      </div>
+
+      <div class="checkout-footer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/></svg></i>
+        Pagamento seguro · Powered by Elo × APAE
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW 3 — PAINEL ADMINISTRATIVO APAE
+════════════════════════════════════════════════ -->
+<div class="view" id="view-admin">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-section">Visão geral</div>
+      <div class="sidebar-item active" onclick="showAdminSection('auditoria')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M9 8m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v9a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M15 4m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v13a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M4 20l14 0"/></svg></i> Arrecadação
+        <span class="count-blue" style="background:var(--blue-light); color:var(--blue); font-size:10px; font-weight:700; padding:1px 6px; border-radius:99px; margin-left:auto;">Ao vivo</span>
+      </div>
+      <div class="sidebar-item" onclick="showAdminSection('campanhas')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5l1.5 1.5l2.5 -2.5"/><path d="M3.5 11.5l1.5 1.5l2.5 -2.5"/><path d="M3.5 17.5l1.5 1.5l2.5 -2.5"/><path d="M11 6l9 0"/><path d="M11 12l9 0"/><path d="M11 18l9 0"/></svg></i> Campanhas
+      </div>
+      <div class="sidebar-section">Voluntários</div>
+      <div class="sidebar-item" onclick="showAdminSection('aprovacao')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/><path d="M15 19l2 2l4 -4"/></svg></i> Aprovação
+        <span class="count">3</span>
+      </div>
+      <div class="sidebar-section">Financeiro</div>
+      <div class="sidebar-item" onclick="showAdminSection('repasses')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4l-4 4"/><path d="M21 7h-11"/><path d="M7 21l-4 -4l4 -4"/><path d="M3 17h11"/></svg></i> Repasses
+      </div>
+      <div class="sidebar-item" onclick="showAdminSection('relatorios')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17l0 -5"/><path d="M12 17l0 -1"/><path d="M15 17l0 -3"/></svg></i> Relatórios
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="admin-content">
+
+      <!-- SEÇÃO: AUDITORIA / ARRECADAÇÃO -->
+      <div id="admin-auditoria">
+        <div class="admin-header">
+          <div>
+            <div class="admin-title">Painel de arrecadação</div>
+            <div class="admin-subtitle">Atualizado agora · Junho 2025</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <select class="filter-input">
+              <option>Junho 2025</option>
+              <option>Maio 2025</option>
+              <option>Abril 2025</option>
+            </select>
+            <button class="btn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/></svg></i> Exportar</button>
+          </div>
+        </div>
+
+        <div class="metrics" style="grid-template-columns: repeat(4, minmax(0,1fr));">
+          <div class="metric">
+            <div class="metric-label">Total arrecadado (mês)</div>
+            <div class="metric-value green">R$ 28.450</div>
+            <div class="metric-sub">↑ 18% vs mês anterior</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Campanhas ativas</div>
+            <div class="metric-value blue">11</div>
+            <div class="metric-sub">3 encerradas este mês</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Doações processadas</div>
+            <div class="metric-value">342</div>
+            <div class="metric-sub">Ticket médio R$ 83</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Split automático</div>
+            <div class="metric-value green">100%</div>
+            <div class="metric-sub">0 pendências</div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-bottom:1rem;">
+          <!-- Barras por campanha -->
+          <div class="card" style="margin-bottom:0;">
+            <div class="section-label" style="margin-bottom:14px;">Arrecadação por campanha</div>
+            <div class="chart-bar-wrap">
+              <div class="chart-row">
+                <div class="chart-label" title="Aniversário Maria Lima">🎂 Aniversário — Maria L.</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill prog-blue admin-bar" data-w="64" style="width:0%">R$ 3.200</div></div>
+                <div class="chart-val">R$ 3.200</div>
+              </div>
+              <div class="chart-row">
+                <div class="chart-label" title="Corrida pelos Sorrisos">🏃 Corrida — Videira 5km</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill prog-green admin-bar" data-w="27" style="width:0%">R$ 1.620</div></div>
+                <div class="chart-val">R$ 1.620</div>
+              </div>
+              <div class="chart-row">
+                <div class="chart-label" title="Bazaar Escola">🛍️ Bazaar — Escola ABC</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill admin-bar" data-w="89" style="width:0%; background:var(--amber);">R$ 5.340</div></div>
+                <div class="chart-val">R$ 5.340</div>
+              </div>
+              <div class="chart-row">
+                <div class="chart-label" title="Jantar beneficente">🍽️ Jantar beneficente</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill admin-bar" data-w="100" style="width:0%; background:#7C3AED;">R$ 6.000</div></div>
+                <div class="chart-val">R$ 6.000</div>
+              </div>
+              <div class="chart-row">
+                <div class="chart-label" title="Rifas Solidárias">🎟️ Rifas Solidárias</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill admin-bar" data-w="52" style="width:0%; background:#0891B2;">R$ 2.080</div></div>
+                <div class="chart-val">R$ 2.080</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Log de auditoria -->
+          <div class="card" style="margin-bottom:0;">
+            <div class="section-label" style="margin-bottom:14px;">Registro de repasses</div>
+            <div class="audit-log">
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-green"></div>
+                <div class="audit-time">14:32</div>
+                <div class="audit-msg"><strong>R$ 50</strong> repassado · Campanha 🎂 Aniversário</div>
+              </div>
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-green"></div>
+                <div class="audit-time">13:58</div>
+                <div class="audit-msg"><strong>R$ 100</strong> repassado · Campanha 🍽️ Jantar</div>
+              </div>
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-blue"></div>
+                <div class="audit-time">12:14</div>
+                <div class="audit-msg">Campanha <strong>🎟️ Rifas</strong> aprovada por Ana M.</div>
+              </div>
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-green"></div>
+                <div class="audit-time">11:40</div>
+                <div class="audit-msg"><strong>R$ 200</strong> repassado · Campanha 🛍️ Bazaar</div>
+              </div>
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-amber"></div>
+                <div class="audit-time">10:05</div>
+                <div class="audit-msg">Nova solicitação de <strong>João Farias</strong> aguarda aprovação</div>
+              </div>
+              <div class="audit-row">
+                <div class="audit-dot audit-dot-green"></div>
+                <div class="audit-time">09:27</div>
+                <div class="audit-msg"><strong>R$ 75</strong> repassado · Campanha 🏃 Corrida</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de campanhas resumida -->
+        <div class="card">
+          <div class="section-label" style="margin-bottom:12px;">Todas as campanhas do mês</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Campanha</th>
+                  <th>Organizador</th>
+                  <th>Meta</th>
+                  <th>Arrecadado</th>
+                  <th>Progresso</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>🎂 Aniversário 30 anos</td>
+                  <td>Maria Lima</td>
+                  <td>R$ 5.000</td>
+                  <td><strong style="color:var(--green);">R$ 3.200</strong></td>
+                  <td>
+                    <div class="prog-bg" style="width:100px;"><div class="prog-fill prog-blue" style="width:64%"></div></div>
+                  </td>
+                  <td><span class="badge badge-active">Ativa</span></td>
+                  <td><button class="btn" style="padding:4px 10px; font-size:11px;" onclick="showToast('Detalhes abertos','green')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg></i> Ver</button></td>
+                </tr>
+                <tr>
+                  <td>🏃 Corrida 5km Videira</td>
+                  <td>Carlos Pinto</td>
+                  <td>R$ 6.000</td>
+                  <td><strong style="color:var(--green);">R$ 1.620</strong></td>
+                  <td>
+                    <div class="prog-bg" style="width:100px;"><div class="prog-fill prog-green" style="width:27%"></div></div>
+                  </td>
+                  <td><span class="badge badge-active">Ativa</span></td>
+                  <td><button class="btn" style="padding:4px 10px; font-size:11px;" onclick="showToast('Detalhes abertos','green')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg></i> Ver</button></td>
+                </tr>
+                <tr>
+                  <td>🛍️ Bazaar Escola ABC</td>
+                  <td>Fernanda Rocha</td>
+                  <td>R$ 6.000</td>
+                  <td><strong style="color:var(--green);">R$ 5.340</strong></td>
+                  <td>
+                    <div class="prog-bg" style="width:100px;"><div class="prog-fill" style="width:89%; background:var(--amber)"></div></div>
+                  </td>
+                  <td><span class="badge badge-active">Ativa</span></td>
+                  <td><button class="btn" style="padding:4px 10px; font-size:11px;" onclick="showToast('Detalhes abertos','green')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg></i> Ver</button></td>
+                </tr>
+                <tr>
+                  <td>🍽️ Jantar beneficente</td>
+                  <td>Grupo Rotary</td>
+                  <td>R$ 6.000</td>
+                  <td><strong style="color:var(--green);">R$ 6.000</strong></td>
+                  <td>
+                    <div class="prog-bg" style="width:100px;"><div class="prog-fill" style="width:100%; background:#7C3AED"></div></div>
+                  </td>
+                  <td><span class="badge badge-closed">Encerrada</span></td>
+                  <td><button class="btn" style="padding:4px 10px; font-size:11px;" onclick="showToast('Detalhes abertos','green')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg></i> Ver</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEÇÃO: APROVAÇÃO DE VOLUNTÁRIOS -->
+      <div id="admin-aprovacao" style="display:none;">
+        <div class="admin-header">
+          <div>
+            <div class="admin-title">Solicitações de voluntários</div>
+            <div class="admin-subtitle">3 aguardando aprovação</div>
+          </div>
+          <div class="filters">
+            <input class="filter-input" placeholder="Buscar nome..." style="width:180px;" />
+            <select class="filter-input"><option>Todos os tipos</option><option>Aniversário</option><option>Evento esportivo</option><option>Venda</option></select>
+          </div>
+        </div>
+
+        <!-- Card 1 -->
+        <div class="approval-card">
+          <div class="appr-avatar av-blue" style="background:#1B4FD8; color:white; font-size:14px; font-weight:600; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;">JF</div>
+          <div class="appr-info">
+            <div class="appr-name">João Farias</div>
+            <div class="appr-meta">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/></svg></i> Solicitado em 18/06/2025 ·
+              <span class="badge badge-pending" style="vertical-align:middle;"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 3"/></svg></i> Aguardando</span>
+            </div>
+            <div class="appr-desc">
+              <strong>Tipo:</strong> Aniversário de 40 anos — <strong>Meta:</strong> R$ 3.000 — <strong>Período:</strong> 01/07 a 31/07/2025<br/>
+              <em>"Quero celebrar meu aniversário revertendo os presentes em doações para a APAE, que cuidou do meu irmão."</em>
+            </div>
+            <div class="appr-actions">
+              <button class="btn btn-success" onclick="approveVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg></i> Aprovar campanha</button>
+              <button class="btn btn-danger" onclick="rejectVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></i> Recusar</button>
+              <button class="btn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9h8"/><path d="M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z"/></svg></i> Pedir informações</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="approval-card">
+          <div class="appr-avatar" style="background:#7C3AED; color:white; font-size:14px; font-weight:600; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;">LS</div>
+          <div class="appr-info">
+            <div class="appr-name">Laís Souza</div>
+            <div class="appr-meta">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/></svg></i> Solicitado em 17/06/2025 ·
+              <span class="badge badge-pending" style="vertical-align:middle;"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 3"/></svg></i> Aguardando</span>
+            </div>
+            <div class="appr-desc">
+              <strong>Tipo:</strong> Evento esportivo — Triathlon 70.3 — <strong>Meta:</strong> R$ 8.000 — <strong>Período:</strong> 15/07 a 15/08/2025<br/>
+              <em>"Vou correr o triathlon dedicando a prova à APAE. Cada KM percorrido representa um sorriso a mais."</em>
+            </div>
+            <div class="appr-actions">
+              <button class="btn btn-success" onclick="approveVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg></i> Aprovar campanha</button>
+              <button class="btn btn-danger" onclick="rejectVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></i> Recusar</button>
+              <button class="btn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9h8"/><path d="M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z"/></svg></i> Pedir informações</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="approval-card">
+          <div class="appr-avatar" style="background:#0891B2; color:white; font-size:14px; font-weight:600; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;">RT</div>
+          <div class="appr-info">
+            <div class="appr-name">Roberto Teixeira</div>
+            <div class="appr-meta">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/></svg></i> Solicitado em 16/06/2025 ·
+              <span class="badge badge-pending" style="vertical-align:middle;"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 3"/></svg></i> Aguardando</span>
+            </div>
+            <div class="appr-desc">
+              <strong>Tipo:</strong> Venda de artesanato — <strong>Meta:</strong> R$ 2.000 — <strong>Período:</strong> Julho/2025<br/>
+              <em>"Nossa família vende artesanato em feiras e gostaríamos de reverter parte do lucro para a APAE da nossa cidade."</em>
+            </div>
+            <div class="appr-actions">
+              <button class="btn btn-success" onclick="approveVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5l10 -10"/></svg></i> Aprovar campanha</button>
+              <button class="btn btn-danger" onclick="rejectVolunteer(this)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></i> Recusar</button>
+              <button class="btn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9h8"/><path d="M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z"/></svg></i> Pedir informações</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEÇÃO: campanhas / repasses / relatórios (placeholder) -->
+      <div id="admin-campanhas" style="display:none;">
+        <div class="admin-header"><div class="admin-title">Todas as campanhas</div></div>
+        <div class="card" style="text-align:center; padding:3rem; color:var(--text3);">
+          <svg style="font-size:40px; display:block; margin-bottom:12px;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5l1.5 1.5l2.5 -2.5"/><path d="M3.5 11.5l1.5 1.5l2.5 -2.5"/><path d="M3.5 17.5l1.5 1.5l2.5 -2.5"/><path d="M11 6l9 0"/><path d="M11 12l9 0"/><path d="M11 18l9 0"/></svg></i>
+          <div>Tela de gerenciamento completo das campanhas</div>
+        </div>
+      </div>
+      <div id="admin-repasses" style="display:none;">
+        <div class="admin-header"><div class="admin-title">Repasses automáticos</div></div>
+        <div class="card" style="text-align:center; padding:3rem; color:var(--text3);">
+          <svg style="font-size:40px; display:block; margin-bottom:12px;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4l-4 4"/><path d="M21 7h-11"/><path d="M7 21l-4 -4l4 -4"/><path d="M3 17h11"/></svg></i>
+          <div>Histórico de todos os splits de pagamento efetuados</div>
+        </div>
+      </div>
+      <div id="admin-relatorios" style="display:none;">
+        <div class="admin-header"><div class="admin-title">Relatórios</div></div>
+        <div class="card" style="text-align:center; padding:3rem; color:var(--text3);">
+          <svg style="font-size:40px; display:block; margin-bottom:12px;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17l0 -5"/><path d="M12 17l0 -1"/><path d="M15 17l0 -3"/></svg></i>
+          <div>Exportação de relatórios contábeis e de impacto social</div>
+        </div>
+      </div>
+
+    </div><!-- /admin-content -->
+  </div><!-- /admin-layout -->
+</div><!-- /view-admin -->
+
+<!-- MODAL: CRIAR CAMPANHA -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></i></button>
+    <div class="modal-title">✨ Nova campanha</div>
+    <div class="field-group">
+      <div class="field-label">Nome da campanha</div>
+      <input class="field-input" placeholder="Ex: Aniversário de 30 anos — João Silva" />
+    </div>
+    <div class="field-group">
+      <div class="field-label">Tipo</div>
+      <select class="field-input">
+        <option>Aniversário</option>
+        <option>Evento esportivo</option>
+        <option>Venda / Bazaar</option>
+        <option>Outro</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <div class="field-group" style="flex:1;">
+        <div class="field-label">Meta (R$)</div>
+        <input class="field-input" type="number" placeholder="5000" />
+      </div>
+      <div class="field-group" style="flex:1;">
+        <div class="field-label">Data de encerramento</div>
+        <input class="field-input" type="date" />
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Descrição (aparece na página da campanha)</div>
+      <textarea class="field-input" rows="3" placeholder="Conte sua história e por que está apoiando a APAE..."></textarea>
+    </div>
+    <div class="split-callout" style="margin-bottom:1rem;">
+      <svg style="font-size:16px; flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg></i>
+      <span>Ao criar a campanha, você declara que todas as doações serão repassadas integralmente à APAE via split de pagamento automático.</span>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitCampaign()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14l11 -11"/><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5"/></svg></i> Enviar para aprovação</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── NAVEGAÇÃO ENTRE VIEWS ──
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'organizador') animateOrgBars();
+    if (name === 'admin') animateAdminBars();
+    window.scrollTo(0, 0);
+  }
+
+  // ── NAVEGAÇÃO INTERNA DO ADMIN ──
+  function showAdminSection(section) {
+    const sections = ['auditoria','campanhas','aprovacao','repasses','relatorios'];
+    sections.forEach(s => {
+      const el = document.getElementById('admin-' + s);
+      if (el) el.style.display = s === section ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    if (section === 'auditoria') animateAdminBars();
+  }
+
+  // ── CHECKOUT ──
+  function selectAmt(btn, val) {
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    document.getElementById('amtCustom').value = val;
+    document.getElementById('donate-btn').innerHTML =
+      val ? '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.566"/></svg></i> Confirmar doação de R$ ' + val
+          : '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.566"/></svg></i> Confirmar doação';
+  }
+
+  function selectPayTab(btn, type) {
+    document.querySelectorAll('.pay-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pix-section').style.display = type === 'pix' ? 'block' : 'none';
+    document.getElementById('card-section').style.display = type === 'card' ? 'block' : 'none';
+  }
+
+  function confirmDonate() {
+    showToast('Doação confirmada! Obrigado 💙', 'green');
+    showView('organizador');
+  }
+
+  // QR Code simbólico
+  const qrEl = document.getElementById('qr');
+  const p = [1,1,1,0,1,1,1,1,0,0,0,0,0,1,1,0,1,1,0,1,0,1,1,0,0,1,0,0,0,1,1,0,1,0,0,0,1,1,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,0,1,0,1,1,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1,0,1,1,1,1,0,1,1,1,0,1,0,0,0,1,1,0,1,0,1,1,1,0,1,1,0,0,0,1,0,1,1,1,0,1,0,0,0,1,1,0,0,0,0,1,0,1,1,1,0,1,1,1];
+  p.forEach(v => {
+    const d = document.createElement('div');
+    d.className = 'pix-cell';
+    d.style.background = v ? '#1B4FD8' : 'white';
+    qrEl.appendChild(d);
+  });
+
+  // ── APROVAÇÃO ──
+  function approveVolunteer(btn) {
+    const card = btn.closest('.approval-card');
+    card.style.opacity = '0.5';
+    card.style.transition = 'opacity 0.3s';
+    showToast('Campanha aprovada com sucesso!', 'green');
+    setTimeout(() => card.remove(), 400);
+  }
+  function rejectVolunteer(btn) {
+    const card = btn.closest('.approval-card');
+    card.style.opacity = '0.5';
+    card.style.transition = 'opacity 0.3s';
+    showToast('Solicitação recusada.', 'red');
+    setTimeout(() => card.remove(), 400);
+  }
+
+  // ── MODAL ──
+  function openModal() { document.getElementById('modal').classList.add('open'); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function submitCampaign() {
+    closeModal();
+    showToast('Campanha enviada para aprovação da APAE!', 'green');
+  }
+
+  // ── TOAST ──
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    const m = document.getElementById('toast-msg');
+    m.textContent = msg;
+    t.className = 'toast show' + (type === 'green' ? ' toast-green' : type === 'red' ? ' toast-red' : '');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function copyLink() {
+    showToast('Link copiado! Compartilhe com seus amigos.', 'green');
+  }
+
+  // ── ANIMAÇÕES ──
+  function animateOrgBars() {
+    setTimeout(() => {
+      const b1 = document.getElementById('org-bar1');
+      const b2 = document.getElementById('org-bar2');
+      if (b1) b1.style.width = '64%';
+      if (b2) b2.style.width = '27%';
+    }, 200);
+  }
+
+  function animateAdminBars() {
+    setTimeout(() => {
+      document.querySelectorAll('.admin-bar').forEach(b => {
+        b.style.width = b.dataset.w + '%';
+      });
+    }, 300);
+  }
+
+  // Inicializar barras
+  animateOrgBars();
+</script>
+</body>
+</html>
